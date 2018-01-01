@@ -1,23 +1,27 @@
-setwd("C:/Users/jimmy/workspace/R/Jimmy DATA MINING")
+# Jimmy Hughes R project
+# Plane Crash data analysis
+
+
 # load required packages
-library(readr)    # to read functions to import xls file
-library(stringr)  # to use regx and other string functions
-library(tidyverse)  # to manipulate data
-library(dplyr)      # to manipulate data
-library(ggplot2)    # to plot graph
-library(readr)      # to read flat/tabular text files
-library(lubridate)  # to manipulate as date
-library(tm)         # to perform text mining operations (for wordcloud here)
-library(caret)      # to spilt data and and select featured data
-library(wordcloud)  # to write most reasons for crash in a cloud form
-library(gridExtra)  # to arrange multiple grid based plots on a page
-library(RColorBrewer)# to have nice color palettes
-library(DT)         # to have html representation of the data
+library(readr)    
+library(stringr)  
+library(tidyverse)  
+library(dplyr)      
+library(ggplot2)    
+library(readr)      
+library(lubridate)  
+library(tm)         
+library(caret)      
+library(wordcloud)  
+library(gridExtra)  
+library(RColorBrewer)
+library(DT)         
 library("dplyr")
 library("xml2")
 library("rvest")
 library("tidyr")
 library("magrittr")
+
 # select from which years to get plane crash data and create URL for each
 years <- c("2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017")
 urlYears <- paste0("http://www.planecrashinfo.com/", years, 
@@ -40,16 +44,16 @@ years
 
 data <- lapply(urls, function(url) {
   url %>% 
-    # read each crash table
+    # read crash tables
     read_html %>% 
     html_table %>% 
     data.frame %>%  
     setNames(c("Vars", "Vals")) %>%
-    # header is a colunm and values are in a column -> tidy up
+    # clean up columns
     spread(Vars, Vals) %>% 
     .[-1]
 })
-# data list to data.frame and set appropriate variable names
+# set data.frame and set appropriate variable names
 data %<>% 
   bind_rows %>% 
   setNames(gsub(":", "", colnames(.)) %>% tolower)
@@ -58,7 +62,7 @@ data %<>% select(date, location, route, operator, aboard, fatalities, summary)
 # clean location variable
 data %<>% mutate(location = gsub("Near | near", "", location)) %>% 
   mutate(location = gsub(",.*,", ",", location))
-# extract total number of people aboard and fatalities 
+# extract total number aboard and fatalities 
 data$aboard <- strsplit(data$aboard, " ") %>% 
   lapply("[[", 1)  %>% 
   as.numeric
@@ -102,6 +106,7 @@ A1 <- ggplot(years, aes(y = Freq, x = Var1, group = 1))  +
 
 grid.arrange(A1, A2, nrow = 2, heights=2:1)
 
+#fatalities
 Fatalities <- data %>% group_by(Year) %>% 
   summarise(total_fatalities = sum(fatalities), total_passengers = sum(aboard))
 
@@ -114,6 +119,7 @@ f1 <- ggplot(Fatalities, aes(y = (total_fatalities/total_passengers)*100, x = Ye
   ggtitle("Percent of fatalities per year")
 f1
 
+#location
 Location_Crash <-   data %>% group_by(location) %>% 
   summarise(total_fatalities = sum(fatalities)) %>% arrange(desc(total_fatalities))
 
@@ -123,6 +129,7 @@ L1 <- ggplot(Location_Crash[1:20,], aes(x = reorder(location, -total_fatalities)
   ggtitle("Top 20 Countries with Maximum Fatalities")
 L1
 
+#operating ariline
 crash_operator <-   data %>% group_by(operator) %>% 
   summarise(Freq = n()) %>% arrange(desc(Freq))
 
